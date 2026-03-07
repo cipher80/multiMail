@@ -77,8 +77,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Main send endpoint
-  if (req.method === 'POST' && parsedUrl.pathname === '/send') {
+  // Main send endpoint — handles both /send (legacy) and /api/send (Vercel-compatible)
+  const isSendRoute =
+    req.method === 'POST' &&
+    (parsedUrl.pathname === '/send' || parsedUrl.pathname === '/api/send');
+
+  if (isSendRoute) {
     try {
       const { fields, files } = await parseMultipart(req);
 
