@@ -1,0 +1,11 @@
+{
+  "name": "multimail",
+  "version": "1.0.0",
+  "description": "MultiMail — private bulk email sender via Gmail SMTP",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.2",
+    "nodemailer": "^6.9.9"
+  }
+}

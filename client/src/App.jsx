@@ -28,7 +28,7 @@ export default function App() {
       formData.append('recipients', JSON.stringify(recipients));
       attachments.forEach((file) => formData.append('attachments', file));
 
-      const res = await fetch('/send', {
+      const res = await fetch('/api/send', {
         method: 'POST',
         body: formData,
       });
