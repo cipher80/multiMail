@@ -44,7 +44,7 @@ app.post('/api/send', upload.array('attachments', 10), async (req, res) => {
     const results = await Promise.allSettled(
       recipients.map((recipient) =>
         transporter.sendMail({
-          from: `MultiMail <${SMTP_USER}>`,
+          from: SMTP_USER,
           to: recipient.trim(),
           subject: subject || '(No Subject)',
           html: body || '',

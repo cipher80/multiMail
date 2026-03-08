@@ -43,7 +43,7 @@ function parseMultipart(req) {
 // ─── Send one email to one recipient ─────────────────────────────────────────
 async function sendToRecipient(recipient, subject, body, attachments) {
   const mailOptions = {
-    from: `MultiMail <${SMTP_USER}>`,
+    from: SMTP_USER,
     to: recipient,
     subject: subject,
     html: body,
