@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -7,6 +7,59 @@ function isValidEmail(email) {
 export default function RecipientList({ recipients, setRecipients }) {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  async function handlePDFUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsExtracting(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const res = await fetch('/api/extract-emails', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to extract emails');
+
+      const foundEmails = data.emails || [];
+      if (foundEmails.length === 0) {
+        setError('No valid email addresses found in the PDF.');
+        return;
+      }
+
+      // Merge and deduplicate with existing recipients
+      const newRecipients = [...recipients];
+      let addedCount = 0;
+      foundEmails.forEach(email => {
+        if (!newRecipients.includes(email)) {
+          newRecipients.push(email);
+          addedCount++;
+        }
+      });
+
+      setRecipients(newRecipients);
+      if (addedCount === 0) {
+        setError('All emails found in the PDF are already in the list.');
+      } else {
+        // Flash a slight success message? or just reset error
+        setError(`Successfully added ${addedCount} emails from PDF!`);
+        setTimeout(() => setError(''), 4000);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsExtracting(false);
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
 
   function addRecipient() {
     const email = input.trim();
@@ -48,6 +101,36 @@ export default function RecipientList({ recipients, setRecipients }) {
         />
         <button id="add-recipient-btn" className="btn-add" onClick={addRecipient}>
           + Add
+        </button>
+      </div>
+
+      <div className="pdf-upload-row" style={{ marginTop: '12px', marginBottom: '12px' }}>
+        <input
+          type="file"
+          accept="application/pdf"
+          ref={fileInputRef}
+          style={{ display: 'none' }}
+          onChange={handlePDFUpload}
+        />
+        <button
+          className="btn-upload-pdf"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isExtracting}
+          style={{
+             padding: '8px 16px',
+             background: 'var(--bg-card-hover)',
+             color: 'var(--accent)',
+             border: '1px solid var(--border)',
+             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+             borderRadius: '6px',
+             cursor: isExtracting ? 'not-allowed' : 'pointer',
+             fontSize: '0.9rem',
+             display: 'flex',
+             alignItems: 'center',
+             gap: '6px'
+          }}
+        >
+          {isExtracting ? '⏳ Extracting...' : '📄 Auto-Add Emails from PDF'}
         </button>
       </div>
 

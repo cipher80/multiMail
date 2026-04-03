@@ -4,7 +4,7 @@
   "description": "MultiMail backend - stateless Gmail SMTP relay",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server/index.js",
     "dev": "node --watch index.js"
   },
   "dependencies": {

@@ -2,6 +2,7 @@ const http = require('http');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
 const url = require('url');
+const pdf = require('pdf-parse');
 
 // ─── Gmail SMTP Config ────────────────────────────────────────────────────────
 const SMTP_USER = 'uttamg61001@gmail.com';
@@ -9,6 +10,11 @@ const SMTP_PASS = 'ojao pubs sgso cvxz';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  pool: true,           // Reuses connection so we don't login 24 times
+  maxConnections: 3,    // Safe number of concurrent socket connections
+  maxMessages: 100,
+  socketTimeout: 10000, // 10 seconds timeout so it never hangs infinitely
+  connectionTimeout: 10000,
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS,
@@ -77,6 +83,41 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Extract emails from PDF endpoint
+  if (req.method === 'POST' && parsedUrl.pathname === '/api/extract-emails') {
+    try {
+      const uploadSingle = upload.single('pdf');
+      
+      await new Promise((resolve, reject) => {
+        uploadSingle(req, {}, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+
+      if (!req.file) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No PDF file uploaded.' }));
+        return;
+      }
+
+      const data = await pdf(req.file.buffer);
+      // Regex to find all valid email addresses
+      const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+      const foundEmails = data.text.match(emailRegex) || [];
+      // Remove duplicates and trim
+      const uniqueEmails = Array.from(new Set(foundEmails.map(e => e.trim().toLowerCase())));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ emails: uniqueEmails }));
+    } catch (err) {
+      console.error('PDF Extraction error:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   // Main send endpoint — handles both /send (legacy) and /api/send (Vercel-compatible)
   const isSendRoute =
     req.method === 'POST' &&
@@ -106,12 +147,26 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      // Send one email per recipient (individual, private)
-      const results = await Promise.allSettled(
-        recipients.map((recipient) =>
-          sendToRecipient(recipient.trim(), subject, body, files)
-        )
-      );
+      // Send emails in small chunks (batches of 3) with a short delay in between
+      // This solves both "infinite loading hang" and Gmail's anti-spam blocks
+      const results = [];
+      const chunkSize = 3;
+      for (let i = 0; i < recipients.length; i += chunkSize) {
+        const chunk = recipients.slice(i, i + chunkSize);
+        
+        // Execute chunk concurrently
+        const chunkResults = await Promise.allSettled(
+          chunk.map((recipient) =>
+            sendToRecipient(recipient.trim(), subject, body, files)
+          )
+        );
+        results.push(...chunkResults);
+
+        // If there are more emails left, pause for 1 second to pace it properly
+        if (i + chunkSize < recipients.length) {
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+      }
 
       const summary = results.map((result, idx) => ({
         recipient: recipients[idx],
