@@ -1,0 +1,51 @@
+---
+description: MultiMail local server and Vercel API send/email patterns
+globs: "{server,api}/**/*.{js,json}"
+alwaysApply: false
+---
+
+# Backend conventions
+
+Two nearly identical send implementations — change both when altering email behavior.
+
+## Local — `server/index.js`
+
+- Raw `http.createServer` (not Express)
+- Port `3004`
+- Routes: `POST /api/send` and legacy `POST /send`; `GET /health`; `OPTIONS` → 204
+- Multer memory, **25 MB** / file, max 10 attachments
+- HTTP **500** if **all** recipients fail; else 200 with mixed `results`
+
+## Vercel — `api/send.js`
+
+- Express app exported as `module.exports = app`
+- Routes registered as `POST /api/send`, `GET /api/health`
+- Multer memory, **4 MB** / file (Vercel body limit ~4.5 MB)
+- Returns `results` even when all fail (no all-failed 500 special-case)
+
+## Email pattern (both)
+
+```js
+// One message per recipient — never CC/BCC
+transporter.sendMail({
+  from: SMTP_USER,
+  to: recipient,
+  subject,
+  html: body,
+  attachments: files.map(f => ({
+    filename: f.originalname,
+    content: f.buffer,
+    contentType: f.mimetype,
+  })),
+});
+```
+
+- Transport: `nodemailer` + `service: 'gmail'`
+- Parallel: `Promise.allSettled` over recipients
+- Recipients parse: `JSON.parse` first, else comma-split
+
+## When editing
+
+- Keep privacy model (individual To only)
+- Prefer moving `SMTP_USER` / `SMTP_PASS` to env vars rather than duplicating literals
+- Watch Vercel `maxDuration: 30` for large recipient lists

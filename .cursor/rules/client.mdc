@@ -1,0 +1,33 @@
+---
+description: MultiMail React client structure and UI patterns
+globs: client/**/*.{jsx,js,css,html}
+alwaysApply: false
+---
+
+# Client conventions
+
+Single-page app — **no React Router**. State lives in `App.jsx`; children are presentational.
+
+## Components
+
+| File | Role |
+|------|------|
+| `src/App.jsx` | State, `handleSend` / `handleReset`, layout |
+| `src/components/RecipientList.jsx` | Manual add or CSV/Excel/PDF import |
+| `src/utils/extractEmails.js` | Parse emails from uploaded list files |
+| `src/components/EmailComposer.jsx` | Subject, body, attachments (drag/drop) |
+| `src/components/SendStatus.jsx` | Per-recipient sent/failed results |
+
+## Send flow (`App.jsx`)
+
+- Gate: ≥1 recipient, non-empty subject & body, not `sending`
+- Body: newlines → `<br/>` before send
+- `recipients` = `JSON.stringify(array)`; files field name `attachments`
+- `fetch('/api/send')` — do not set `Content-Type` (browser sets multipart boundary)
+- `SENDER_EMAIL` is display-only; actual From is server SMTP user
+
+## UI notes
+
+- Styles: `src/index.css` with CSS variables (dark theme, `--accent: #6c63ff`)
+- Client attachment UX: ~25 MB per file; accept pdf/doc/xls/images/zip
+- Max 10 attachments enforced on **server** only — keep client in mind if adding limits

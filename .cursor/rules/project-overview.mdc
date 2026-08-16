@@ -1,0 +1,48 @@
+---
+description: MultiMail project architecture, stack, and conventions
+alwaysApply: true
+---
+
+# MultiMail — Project Knowledge Base
+
+Private bulk email sender: one shared subject/body/attachments, delivered as **separate individual emails** per recipient (no CC/BCC). Stateless — no DB, sessions, or auth.
+
+## Layout
+
+| Path | Role |
+|------|------|
+| `client/` | React 18 + Vite SPA (port 5173) |
+| `server/` | Local Node `http` + nodemailer (port 3004) |
+| `api/send.js` | Vercel Express serverless function |
+| `vercel.json` | Builds `client/dist`, `api/send.js` maxDuration 30s |
+
+## Data flow
+
+1. `App.jsx` builds `FormData` → `POST /api/send`
+2. Dev: Vite proxies `/api` → `localhost:3004` (`client/vite.config.js`)
+3. Prod: Vercel static + serverless `api/send.js`
+4. Backend: multer (memory) → nodemailer Gmail SMTP → `Promise.allSettled` per recipient
+
+## API contract
+
+- **Request** multipart: `subject`, `body` (HTML), `recipients` (JSON array string), `attachments` (max 10)
+- **Response**: `{ results: [{ recipient, status: "sent"|"failed", error }] }`
+- Health: local `GET /health`; Vercel `GET /api/health`
+
+## Critical constraints
+
+- SMTP credentials are **hardcoded** as `SMTP_USER` / `SMTP_PASS` in both backends (no `.env` yet) — never commit new secrets; prefer env migration when touching auth
+- Attachment limits differ: local/client **25 MB** vs Vercel API **4 MB**
+- Open CORS (`*`), no API auth — anyone who can hit the endpoint can send
+- Keep dual backends (`server/index.js` and `api/send.js`) behavior in sync when changing send logic
+
+## Run (local)
+
+```bash
+cd server && npm run dev   # :3004
+cd client && npm run dev   # :5173, proxies /api
+```
+
+## Recipients import
+
+Client can add emails one-by-one or upload CSV / Excel / PDF; emails are extracted in-browser (`client/src/utils/extractEmails.js`) and merged into the recipients list.
