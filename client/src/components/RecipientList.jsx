@@ -1,6 +1,79 @@
 import { useRef, useState } from 'react';
 import { extractEmailsFromFile, isValidEmail } from '../utils/extractEmails.js';
 
+// ─── Sample download helper ───────────────────────────────────────────────────
+function SampleDownloads() {
+  return (
+    <div className="sample-downloads">
+      <span className="sample-downloads-label">Download sample:</span>
+      <div className="sample-downloads-links">
+        <div className="sample-group">
+          <span className="sample-group-name">Full HR details</span>
+          <a
+            id="dl-full-csv"
+            href="/samples/recipients-sample.csv"
+            download="recipients-sample.csv"
+            className="sample-link"
+          >
+            CSV
+          </a>
+        </div>
+        <span className="sample-divider" aria-hidden="true">·</span>
+        <div className="sample-group">
+          <span className="sample-group-name">Emails only</span>
+          <a
+            id="dl-emails-csv"
+            href="/samples/emails-only-sample.csv"
+            download="emails-only-sample.csv"
+            className="sample-link"
+          >
+            CSV
+          </a>
+          <a
+            id="dl-emails-xlsx"
+            href="/samples/emails-only-sample.xlsx"
+            download="emails-only-sample.xlsx"
+            className="sample-link"
+          >
+            Excel
+          </a>
+        </div>
+      </div>
+      <p className="sample-hint">
+        Upload a file with just HR email addresses, one per row. They will be added to your
+        recipient list automatically.
+      </p>
+    </div>
+  );
+}
+
+// ─── Invalid-entries disclosure ───────────────────────────────────────────────
+function InvalidList({ entries }) {
+  const [open, setOpen] = useState(false);
+  if (!entries.length) return null;
+  return (
+    <div className="invalid-disclosure">
+      <button
+        type="button"
+        className="invalid-toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span className="invalid-toggle-icon">{open ? '▾' : '▸'}</span>
+        Show {entries.length} invalid entr{entries.length === 1 ? 'y' : 'ies'}
+      </button>
+      {open && (
+        <ul className="invalid-list">
+          {entries.map((e, i) => (
+            <li key={i} className="invalid-item">{e}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function RecipientList({ recipients, setRecipients }) {
   const [mode, setMode] = useState('manual'); // 'manual' | 'upload'
   const [input, setInput] = useState('');
@@ -8,8 +81,10 @@ export default function RecipientList({ recipients, setRecipients }) {
   const [info, setInfo] = useState('');
   const [importing, setImporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [invalidEntries, setInvalidEntries] = useState([]);
   const fileInputRef = useRef(null);
 
+  // ── Manual add ─────────────────────────────────────────────────────────────
   function addRecipient() {
     const email = input.trim();
     if (!email) return;
@@ -25,6 +100,7 @@ export default function RecipientList({ recipients, setRecipients }) {
     setInput('');
     setError('');
     setInfo('');
+    setInvalidEntries([]);
   }
 
   function handleKeyDown(e) {
@@ -38,6 +114,7 @@ export default function RecipientList({ recipients, setRecipients }) {
     setRecipients(recipients.filter((r) => r !== email));
   }
 
+  // ── Merge helpers ──────────────────────────────────────────────────────────
   function mergeRecipients(emails) {
     const existing = new Set(recipients.map((r) => r.toLowerCase()));
     const added = [];
@@ -53,28 +130,47 @@ export default function RecipientList({ recipients, setRecipients }) {
     return { added: added.length, skipped: emails.length - added.length };
   }
 
+  // ── File handling ──────────────────────────────────────────────────────────
   async function handleFile(file) {
     if (!file) return;
     setError('');
     setInfo('');
+    setInvalidEntries([]);
     setImporting(true);
+
     try {
-      const emails = await extractEmailsFromFile(file);
-      if (!emails.length) {
-        setError('No valid email addresses found in that file.');
+      const result = await extractEmailsFromFile(file);
+      const { emails, invalid, capped, totalValid } = result;
+
+      if (!emails.length && !invalid.length) {
+        setError(
+          'No valid email addresses found in this file. Check the format or download the sample.'
+        );
         return;
       }
-      const { added, skipped } = mergeRecipients(emails);
-      if (added === 0) {
-        setInfo(`Found ${emails.length} email(s), but all were already in the list.`);
-      } else {
-        setInfo(
-          `Imported ${added} recipient${added !== 1 ? 's' : ''} from ${file.name}` +
-            (skipped ? ` (${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped)` : '')
+
+      if (!emails.length) {
+        setError(
+          'No valid email addresses found in this file. Check the format or download the sample.'
         );
+        setInvalidEntries(invalid);
+        return;
       }
+
+      const { added, skipped } = mergeRecipients(emails);
+
+      // Build summary message
+      const parts = [];
+      if (added > 0) parts.push(`${added} email${added !== 1 ? 's' : ''} added`);
+      else parts.push('No new emails added (all were already in the list)');
+      if (skipped > 0) parts.push(`${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped`);
+      if (invalid.length > 0) parts.push(`${invalid.length} invalid skipped`);
+      if (capped) parts.push(`(file had ${totalValid} valid — capped at 500)`);
+
+      setInfo(parts.join(' · '));
+      setInvalidEntries(invalid);
     } catch (err) {
-      setError(err.message || 'Failed to read file.');
+      setError(err.message || 'Failed to read file. Please try again.');
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -82,26 +178,33 @@ export default function RecipientList({ recipients, setRecipients }) {
   }
 
   function onFileChange(e) {
-    const file = e.target.files?.[0];
-    handleFile(file);
+    handleFile(e.target.files?.[0]);
   }
 
   function onDrop(e) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    handleFile(file);
+    handleFile(e.dataTransfer.files?.[0]);
   }
 
+  function switchMode(next) {
+    setMode(next);
+    setError('');
+    setInfo('');
+    setInvalidEntries([]);
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
+      {/* Mode tabs */}
       <div className="recipient-mode-tabs" role="tablist" aria-label="How to add recipients">
         <button
           type="button"
           role="tab"
           aria-selected={mode === 'manual'}
           className={`recipient-mode-tab${mode === 'manual' ? ' active' : ''}`}
-          onClick={() => { setMode('manual'); setError(''); setInfo(''); }}
+          onClick={() => switchMode('manual')}
         >
           Add one by one
         </button>
@@ -110,7 +213,7 @@ export default function RecipientList({ recipients, setRecipients }) {
           role="tab"
           aria-selected={mode === 'upload'}
           className={`recipient-mode-tab${mode === 'upload' ? ' active' : ''}`}
-          onClick={() => { setMode('upload'); setError(''); setInfo(''); }}
+          onClick={() => switchMode('upload')}
         >
           Upload file
         </button>
@@ -131,42 +234,53 @@ export default function RecipientList({ recipients, setRecipients }) {
           </button>
         </div>
       ) : (
-        <div
-          className={`file-drop-zone recipient-upload-zone${dragOver ? ' drag-over' : ''}${importing ? ' importing' : ''}`}
-          onClick={() => !importing && fileInputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            hidden
-            onChange={onFileChange}
-            disabled={importing}
-          />
-          <div className="drop-icon">{importing ? '⏳' : '📄'}</div>
-          <p className="drop-title">
-            {importing ? 'Reading file…' : 'Drop CSV, Excel, or PDF here'}
-          </p>
-          <p className="drop-hint">
-            Emails are detected automatically from any column or page text
-          </p>
-        </div>
+        <>
+          {/* Sample downloads */}
+          <SampleDownloads />
+
+          {/* Drop zone */}
+          <div
+            className={`file-drop-zone recipient-upload-zone${dragOver ? ' drag-over' : ''}${importing ? ' importing' : ''}`}
+            onClick={() => !importing && fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              hidden
+              onChange={onFileChange}
+              disabled={importing}
+            />
+            <div className="drop-icon">{importing ? '⏳' : '📄'}</div>
+            <p className="drop-title">
+              {importing ? 'Reading file…' : 'Drop CSV, Excel, or PDF here'}
+            </p>
+            <p className="drop-hint">
+              Emails are detected automatically — works with emails-only files or full HR sheets
+            </p>
+          </div>
+        </>
       )}
 
+      {/* Feedback */}
       {error && (
-        <p className="recipient-feedback recipient-feedback-error">
+        <p id="recipient-error" className="recipient-feedback recipient-feedback-error">
           ⚠ {error}
         </p>
       )}
       {info && !error && (
-        <p className="recipient-feedback recipient-feedback-info">
+        <p id="recipient-info" className="recipient-feedback recipient-feedback-info">
           ✓ {info}
         </p>
       )}
 
+      {/* Invalid entries disclosure */}
+      {invalidEntries.length > 0 && <InvalidList entries={invalidEntries} />}
+
+      {/* Recipient list */}
       {recipients.length === 0 ? (
         <div className="empty-recipients">
           No recipients yet — add emails one by one or upload a file

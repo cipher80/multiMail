@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import TemplateSelector from './TemplateSelector.jsx';
 
 function formatBytes(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -19,6 +20,7 @@ export default function EmailComposer({
   subject, setSubject,
   body, setBody,
   attachments, setAttachments,
+  bodyRef,
 }) {
   const fileInputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
@@ -50,6 +52,19 @@ export default function EmailComposer({
 
   return (
     <div>
+      {/* Template selector */}
+      <div className="field">
+        <label>Template</label>
+        <TemplateSelector
+          subject={subject}
+          body={body}
+          onLoad={({ subject: s, body: b }) => {
+            setSubject(s);
+            setBody(b);
+          }}
+        />
+      </div>
+
       {/* Subject */}
       <div className="field">
         <label htmlFor="subject-input">Subject</label>
@@ -67,6 +82,7 @@ export default function EmailComposer({
         <label htmlFor="body-input">Message</label>
         <textarea
           id="body-input"
+          ref={bodyRef}
           className="email-body"
           placeholder="Write your message here…"
           value={body}

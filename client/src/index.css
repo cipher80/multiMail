@@ -260,6 +260,129 @@ input::placeholder, textarea::placeholder {
 .recipient-feedback-error { color: var(--red); }
 .recipient-feedback-info { color: var(--green); }
 
+/* ─── Sample Downloads ───────────────────────────────────────────────────── */
+.sample-downloads {
+  background: rgba(108,99,255,0.05);
+  border: 1px solid rgba(108,99,255,0.18);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.sample-downloads-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.sample-downloads-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sample-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sample-group-name {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sample-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-light);
+  text-decoration: none;
+  padding: 2px 8px;
+  border: 1px solid rgba(108,99,255,0.35);
+  border-radius: 4px;
+  transition: var(--transition);
+}
+
+.sample-link:hover {
+  background: rgba(108,99,255,0.15);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.sample-divider {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.sample-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+/* ─── Drop zone title (upload tab) ──────────────────────────────────────── */
+.drop-title {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+
+/* ─── Invalid entries disclosure ─────────────────────────────────────────── */
+.invalid-disclosure {
+  margin-bottom: 12px;
+}
+
+.invalid-toggle {
+  background: none;
+  border: none;
+  color: var(--yellow);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.invalid-toggle:hover { color: #fbbf24; }
+
+.invalid-toggle-icon {
+  font-size: 0.7rem;
+}
+
+.invalid-list {
+  list-style: none;
+  margin-top: 6px;
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  max-height: 130px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.invalid-item {
+  font-size: 0.78rem;
+  color: var(--yellow);
+  font-family: 'Inter', monospace, sans-serif;
+  opacity: 0.85;
+}
+
 .recipient-input-row {
   display: flex;
   gap: 10px;
@@ -580,3 +703,174 @@ textarea.email-body {
   justify-content: center;
   gap: 6px;
 }
+
+/* ─── Template Selector ──────────────────────────────────────────────────── */
+.template-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.template-top-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.template-select-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.template-select-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 0.95rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.template-select {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.92rem;
+  padding: 11px 14px 11px 36px;
+  transition: var(--transition);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  /* custom chevron */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b92b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.template-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.template-select option,
+.template-select optgroup {
+  background: #1a1d2e;
+  color: var(--text-primary);
+}
+
+/* ─── Template Action Buttons ────────────────────────────────────────────── */
+.btn-tpl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-tpl:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Save as new template (accent filled) */
+.btn-tpl-save {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 10px rgba(108,99,255,0.35);
+}
+.btn-tpl-save:hover:not(:disabled) {
+  background: #5a52e0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(108,99,255,0.5);
+}
+
+/* Ghost (reset / update) */
+.btn-tpl-ghost {
+  background: transparent;
+  color: var(--accent-light);
+  border-color: rgba(108,99,255,0.4);
+}
+.btn-tpl-ghost:hover:not(:disabled) {
+  background: rgba(108,99,255,0.12);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Danger (delete) */
+.btn-tpl-danger {
+  background: transparent;
+  color: var(--red);
+  border-color: rgba(239,68,68,0.35);
+}
+.btn-tpl-danger:hover:not(:disabled) {
+  background: var(--red-bg);
+  border-color: var(--red);
+}
+
+.template-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ─── Template Feedback Messages ─────────────────────────────────────────── */
+.tpl-msg {
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  animation: slideIn 0.2s ease;
+}
+
+.tpl-msg-error {
+  color: var(--red);
+  background: var(--red-bg);
+  border: 1px solid rgba(239,68,68,0.25);
+}
+
+.tpl-msg-success {
+  color: var(--green);
+  background: var(--green-bg);
+  border: 1px solid rgba(34,197,94,0.25);
+}
+
+/* ─── Inline spinner for template buttons ────────────────────────────────── */
+.tpl-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ─── Placeholder Error Banner ───────────────────────────────────────────── */
+.placeholder-error {
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.4);
+  border-radius: var(--radius-sm);
+  color: var(--yellow);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  animation: slideIn 0.2s ease;
+  line-height: 1.5;
+}
+

@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
 const express = require('express');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
@@ -8,7 +9,7 @@ app.use(cors({ origin: '*' }));
 
 const SMTP_USER = 'uttamg61001@gmail.com';
 const SMTP_PASS = 'ojao pubs sgso cvxz';
-const SENDER_NAME = 'MultiMail';
+const SENDER_NAME = process.env.SENDER_NAME || SMTP_USER.split('@')[0];
 const SEND_GAP_MS = 400;
 
 const transporter = nodemailer.createTransport({
@@ -44,7 +45,7 @@ async function sendToRecipient(recipient, subject, body, files) {
   const text = htmlToText(html);
 
   return transporter.sendMail({
-    from: `"${SENDER_NAME}" <${SMTP_USER}>`,
+    from: { name: SENDER_NAME, address: SMTP_USER },
     replyTo: SMTP_USER,
     to: recipient.trim(),
     subject: subject || '(No Subject)',

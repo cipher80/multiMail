@@ -5,6 +5,14 @@ import SendStatus from './components/SendStatus.jsx';
 
 const SENDER_EMAIL = 'uttamg61001@gmail.com';
 
+/** Find all unfilled [Placeholder] tokens in a string. */
+function findPlaceholders(text) {
+  const matches = text.match(/\[[^\]]+\]/g);
+  if (!matches) return [];
+  // Deduplicate
+  return [...new Set(matches)];
+}
+
 export default function App() {
   const [recipients, setRecipients] = useState([]);
   const [subject, setSubject] = useState('');
@@ -12,6 +20,9 @@ export default function App() {
   const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
   const [results, setResults] = useState(null);
+  const [placeholderError, setPlaceholderError] = useState('');
+
+  const bodyRef = useRef(null);
 
   const canSend =
     recipients.length > 0 &&
@@ -20,11 +31,30 @@ export default function App() {
     !sending;
 
   async function handleSend() {
+    setPlaceholderError('');
+
+    // ── Placeholder check ────────────────────────────────────────────────────
+    const found = [
+      ...findPlaceholders(subject),
+      ...findPlaceholders(body),
+    ];
+    // Deduplicate across both fields
+    const unique = [...new Set(found)];
+    if (unique.length > 0) {
+      setPlaceholderError(
+        `Please fill these before sending: ${unique.join(', ')}`,
+      );
+      // Focus the message field so the user sees where to edit
+      bodyRef.current?.focus();
+      return;
+    }
+
     setSending(true);
     try {
       const formData = new FormData();
       formData.append('subject', subject);
-      formData.append('body', body.replace(/\n/g, '<br/>'));
+      // Send as plain text — the server handles HTML conversion & escaping
+      formData.append('body', body);
       formData.append('recipients', JSON.stringify(recipients));
       attachments.forEach((file) => formData.append('attachments', file));
 
@@ -48,13 +78,14 @@ export default function App() {
     setSubject('');
     setBody('');
     setAttachments([]);
+    setPlaceholderError('');
   }
 
   return (
     <div className="app-wrapper">
       <header className="app-header">
         <span className="logo-icon">✉️</span>
-        <h1>MultiMail</h1>
+        <h1>Uttam</h1>
         <p>Send private individual emails to multiple recipients — no one sees who else got it.</p>
       </header>
 
@@ -91,11 +122,19 @@ export default function App() {
               setBody={setBody}
               attachments={attachments}
               setAttachments={setAttachments}
+              bodyRef={bodyRef}
             />
           </div>
 
           {/* Send */}
           <div>
+            {/* Placeholder error banner */}
+            {placeholderError && (
+              <div className="placeholder-error" role="alert">
+                ⚠️ {placeholderError}
+              </div>
+            )}
+
             <button
               id="send-btn"
               className="btn-send"
